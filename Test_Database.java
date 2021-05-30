@@ -2,6 +2,9 @@ package M;
 
 import java.util.*;
 import java.util.ArrayList;
+
+import javax.swing.plaf.synth.SynthSeparatorUI;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -30,7 +33,7 @@ public class Test_Database
             System.out.println ("<-----MENU----->");
             System.out.println ("เลือก 1 = 'โอนเงิน' ");
             System.out.println ("เลือก 2 = 'สืบค้นข้อมูลธุรกรรม' ");
-            System.out.println ("เลือก 3 = 'ยืนยัน' ");
+            System.out.println ("เลือก 3 = 'ยืนยันธุรกรรม' ");
             System.out.println ("เลือก 4 = 'ยกเลิก' ");
             System.out.print   ("กรุณาใส่หมายเลขที่ต้องการทำ -> ");  num = sc.nextInt();
             System.out.println();
@@ -42,13 +45,14 @@ public class Test_Database
                              Insert_Transaction_Data();
                              break;
                     case 2 : System.out.println ("ยืนยันคำสั่ง 'สืบค้นข้อมูลธุรกรรม'");
-                             Insert_Transaction_Line();
+                             
                              break;
-                    case 3 : System.out.println ("ยืนยันคำสั่ง 'ยืนยัน'");
-                             Update_AwaitingToCom();
+                    case 3 : System.out.println ("ยืนยันคำสั่ง 'ยืนยันธุรกรรม'");
+                             ArrayList<String> listTransaction = Show_Info(sc);
+                             int a = Update_AwaitingToCom(listTransaction, sc);
                              break;
                     case 4 : System.out.println ("ยืนยันคำสั่ง 'ยกเลิก'");
-                             Update_AwaitingToIncom();
+                             loops = false;
                              break;
                     default : System.out.println("ไม่มีรายการที่กำหนด กรุณาใส่เลขใหม่อีกครั้ง");  
                                
@@ -88,7 +92,10 @@ public class Test_Database
             Statement myStmt = conn.createStatement();
             myStmt.executeUpdate(sql);
             myStmt.close();
-            return 1;
+            int Result = Insert_Transaction_Line(ID_Transaction);
+            if (Result == 1)return 1;
+            else return 0;
+            
         }
         catch(Exception e) 
         {  
@@ -96,11 +103,10 @@ public class Test_Database
         }
     }
 
-    public static int Insert_Transaction_Line()
+    public static int Insert_Transaction_Line(String ID_Transaction)
     {
-    String ID_Transaction_Line = "TH1234567891011";
     String sql = "INSERT INTO `dpfinal`.`transaction_line` (`ID_Transaction_Line`,`State`) \n" +
-                 "VALUE ('" + ID_Transaction_Line+" ',' "+state.Awaiting+"');";
+                 "VALUE ('" + ID_Transaction+" ',' "+state.Awaiting+"');";
     try
     {
             conn = DriverManager.getConnection(url,name,pass);
@@ -114,9 +120,38 @@ public class Test_Database
             return 0;
     }
 }
-    public static int Update_AwaitingToCom()
+    public static ArrayList<String> Show_Info(Scanner sc)
+    {
+        System.out.print ("Source Wallet ID -> ");  String ID_Wallet= sc.next();
+        ArrayList<String> listTransaction = new ArrayList<>();
+        String sql = "SELECT ID_Transaction FROM `dpfinal`.`transaction` WHERE ID_Source_Wallet = '"+ID_Wallet+"';";
+        try
+        {
+            conn = DriverManager.getConnection(url,name,pass);
+            Statement myStmt = conn.createStatement();
+            ResultSet myRs = myStmt.executeQuery(sql);
+            while(myRs.next()){
+                listTransaction.add(myRs.getString(1));
+            }
+            myStmt.close();
+            myRs.close();
+            return listTransaction;
+        }
+        catch(Exception e)
+        {
+            return listTransaction;
+        }
+        
+    }
+    
+    public static int Update_AwaitingToCom(ArrayList<String> listTransaction,Scanner sc)
     { //เปลี่ยนจาก awaiting เป็น Complete
-        String ID_Transaction_Line = "TH1234567891011";
+        for(String ans : listTransaction){
+            System.out.println("หมายเลขธุรกรรมของคุณ");
+            System.out.println(ans);
+        }
+        System.out.print ("ID_Transaction_Line -> ");  String ID_Transaction_Line= sc.next();
+        //String ID_Transaction_Line = "TH1234567891011";
         String sql = "UPDATE transaction_line\n"+
                      "SET State = 'Complete'\n"+
                      "WHERE ID_Transaction_Line = '"+ID_Transaction_Line+"' AND State = '"+state.Awaiting+"';";
@@ -126,7 +161,9 @@ public class Test_Database
             Statement myStmt = conn.createStatement();
             myStmt.executeUpdate(sql);
             myStmt.close();
-            return 1;
+            int Result = Update_AwaitingToIncom(ID_Transaction_Line);
+            if (Result == 1)return 1;
+            else return 0;
         }
         catch(Exception e) 
         { 
@@ -135,7 +172,7 @@ public class Test_Database
             
     }
 
-        public static int Update_AwaitingToIncom(){ //เปลี่ยนจาก awaiting เป็น Incomplete
+        public static int Update_AwaitingToIncom(String ID_Transaction_Line){ //เปลี่ยนจาก awaiting เป็น Incomplete
             String sql = "UPDATE transaction_line\n"+
                          "SET State = 'Incomplete'\n"+
                          "WHERE State = 'Awaiting';";
@@ -171,6 +208,8 @@ public class Test_Database
         System.out.println(x);
         return x;
     }
+
+
 
 }
 
